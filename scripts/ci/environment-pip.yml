@@ -2,7 +2,7 @@ name: test_env
 channels:
   - defaults
 dependencies:
-  - python=3.8
+  - python=3.10
   - pip
   - pip:
       - rangehttpserver
@@ -27,6 +27,7 @@ dependencies:
       - bokeh
       - dask
       - h5netcdf
+      - h5py < 3.15  # due to HDF error, see netcdf4 Issue #1438
       - intake
       - netcdf4
       - pip
@@ -39,3 +40,5 @@ dependencies:
       - zarr
       - moto
       - toolz
+      - pre-commit
+      - siphon

@@ -8,24 +8,20 @@ on:
 
 jobs:
   test:
-    name: ${{ matrix.CONDA_ENV }}-pytest
-    runs-on: ubuntu-latest
+    name: ${{ matrix.OS }}-${{ matrix.CONDA_ENV }}-pytest
+    runs-on: ${{ matrix.OS }}
     strategy:
       fail-fast: false
       matrix:
-        CONDA_ENV: [py37, py38, py39, pip]
+        OS: [ubuntu-latest, windows-latest]
+        CONDA_ENV: [py310, py311, py312, py313, py314, pip]
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v2.1.1
+      - name: Setup conda
+        uses: conda-incubator/setup-miniconda@v3
         with:
-          auto-update-conda: false
-          mamba-version: "*"
-          channels: conda-forge,defaults
-          auto-activate-base: false
-          activate-environment: test_env
           environment-file: scripts/ci/environment-${{ matrix.CONDA_ENV }}.yml
 
       - name: pip-install
@@ -36,4 +32,4 @@ jobs:
       - name: Run Tests
         shell: bash -l {0}
         run: |
-          pytest -v
+          pytest -v intake/readers

@@ -10,7 +10,7 @@ datasets, called *catalog entries*.  A catalog entry for a dataset includes info
 
 In addition, Intake allows the arguments to data sources to be templated, with the variables explicitly
 expressed as "user parameters". The given arguments are rendered using ``jinja2``, the
-values of named user parameterss, and any overrides.
+values of named user parameters, and any overrides.
 The parameters are also offer validation of the allowed types and values, for both the template
 values and the final arguments passed to the data source. The parameters are named and described, to
 indicate to the user what they are for. This kind of structure can be used to, for example,
@@ -382,7 +382,7 @@ to the constructor takes the same form as ``parameters`` above: a dict of user p
 either as ``UserParameter`` instances or as a dictionary spec for each one.
 
 Templating parameters
-''''''''''''''''''
+'''''''''''''''''''''
 
 Template functions can also be used in parameters (see `Templating`_, above), but you can use the available functions directly without the extra `{{...}}`.
 
@@ -689,4 +689,9 @@ Intake servers can check if clients are authorized to access the catalog as a wh
 Typically a matched pair of server-side plugin (called an "auth plugin") and a client-side plugin (called a "client
 auth plugin) need to be enabled for authorization checks to work.  This feature is still in early development, but see
 module ``intake.auth.secret`` for a demonstration pair of server and client classes implementation auth via a shared
-secret. See :doc:`auth-plugins`.
+secret.
+
+.. raw:: html
+
+    <script data-goatcounter="https://intake.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>

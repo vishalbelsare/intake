@@ -29,8 +29,7 @@ These are the defaults, and any parameters not specified will take the values ab
 * the Intake Server will listen on port 5000 (this can be overridden on the command line,
   see below)
 * and the auth system used will be the fully qualified class given (which, for BaseAuth,
-  always allows access). For further information on securing
-  the Intake Server, see the :ref:`authplugins`.
+  always allows access).
 
 See ``intake.config.defaults`` for a full list of keys and their default values.
 
@@ -282,3 +281,8 @@ Config and Cache
 CLI functions starting with ``intake cache`` and ``intake config`` are available to
 provide information about the system: the locations and value of configuration
 parameters, and the state of cached files.
+
+.. raw:: html
+
+    <script data-goatcounter="https://intake.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>

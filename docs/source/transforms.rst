@@ -29,14 +29,14 @@ Consider the following *target* dataset, which loads some simple facts
 about US states from a CSV file. This  example is taken from the Intake
 test suite.
 
-.. code-block::yaml
+.. code-block:: yaml
 
     sources:
       input_data:
         description: a local data file
         driver: csv
         args:
-          urlpath: '{{ CATALOG_DIR }}cache_data/states.csv'
+          urlpath: '{{ CATALOG_DIR }}/cache_data/states.csv'
 
 We now show two ways to apply a super-simple transform to this data,
 which selects two of the dataframe's columns.
@@ -50,7 +50,7 @@ data source class, and the parameters passed are specific to the transform type.
 Note that the driver is referred to by it's fully-qualified name in the
 Intake package.
 
-.. code-block::yaml
+.. code-block:: yaml
 
       derive_cols:
         driver: intake.source.derived.Columns
@@ -164,7 +164,7 @@ Plugin examples
 ```````````````
 
  - call `.sel` on xarray datasets `xarray-plugin-transform`_
- 
+
 .. _xarray-plugin-transform: https://github.com/intake/intake-xarray/blob/master/intake_xarray/derived.py#L38
 
 API
@@ -172,14 +172,12 @@ API
 
 .. autosummary::
    intake.source.derived.DerivedSource
-   intake.source.derived.Alias
+   intake.source.derived.AliasSource
    intake.source.derived.GenericTransform
    intake.source.derived.DataFrameTransform
    intake.source.derived.Columns
 
 .. autoclass:: intake.source.derived.DerivedSource
-   :members: __init__
-.. autoclass:: intake.source.derived.Alias
    :members: __init__
 .. autoclass:: intake.source.derived.GenericTransform
    :members: __init__
@@ -187,3 +185,8 @@ API
    :members: __init__
 .. autoclass:: intake.source.derived.Columns
    :members: __init__
+
+.. raw:: html
+
+    <script data-goatcounter="https://intake.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>

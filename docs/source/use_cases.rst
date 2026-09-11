@@ -272,7 +272,7 @@ graphical data browser, for searching, selecting and visualising data-sets.
 Modern visualisations for all data-sets
 ---------------------------------------
 
-Intake is integrated with the comprehensive ``holoviz`` suite, particularly ``hvplot``, to 
+Intake is integrated with the comprehensive ``holoviz`` suite, particularly ``hvplot``, to
 bring simple yet powerful data visualisations to any Intake data source by using just one
 single method for everything. These plots are interactive, and can include server-side
 dynamic aggregation of very large data-sets to display more data points than the
@@ -326,7 +326,7 @@ the source, so you can insert it into a catalog (with appropriate description an
 metadata). Alternatively, you can open a YAML file as a catalog with ``intake.open_catalog``
 and use its ``.add()`` method to insert the source into the corresponding file.
 
-If, instead, you have data in your session in one of the containers supported by Intake
-(e.g., array, data-frame), you can use the ``intake.upload()`` function to save it to
-files in an appropriate format and a location you specify, and give you back a data-source
-instance, which, again, you can use with ``.yaml()`` or ``.add()``, as above.
+.. raw:: html
+
+    <script data-goatcounter="https://intake.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>

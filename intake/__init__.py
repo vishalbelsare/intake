@@ -1,28 +1,50 @@
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Copyright (c) 2012 - 2018, Anaconda, Inc. and Intake contributors
 # All rights reserved.
 #
 # The full license is in the LICENSE file, distributed with this software.
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
-import importlib
-import re
-import logging
 import os
-import warnings
 
-from ._version import get_versions
-__version__ = get_versions()['version']
-del get_versions
+try:
+    from intake._version import __version__
+except ImportError:
+    __version__ = "2.dev"  # fallback
 
-from .source import registry
-from .catalog.base import Catalog
+# legacy immediate imports
+from intake.utils import import_name, logger
+from intake.catalog.base import VersionError
+from intake.source import registry
+from intake.config import conf
+from intake.readers import (
+    BaseData,
+    reader_from_call,
+    recommend,
+    BaseReader,
+    BaseConverter,
+    Pipeline,
+    auto_pipeline,
+    path,
+    DataDescription,
+    ReaderDescription,
+    BaseUserParameter,
+    SimpleUserParameter,
+    user_parameters,
+    transform,
+    output,
+    catalogs,
+    entry,
+    datatypes,
+)
+from intake.readers.entry import Catalog
+import intake.readers.importlist  # do this last, as it triggers more imports needing intake
 
+# legacy on-demand imports
 imports = {
     "DataSource": "intake.source.base:DataSource",
-    'Schema': "intake.source.base:Schema",
+    "Schema": "intake.source.base:Schema",
     "load_combo_catalog": "intake.catalog.default:load_combo_catalog",
-    "upload": "intake.container:upload",
     "gui": "intake.interface:instance",
     "interface": "intake.interface",
     "cat": "intake.catalog:builtin",
@@ -30,8 +52,7 @@ imports = {
     "register_driver": "intake.source:register_driver",
     "unregister_driver": "intake.source:unregister_driver",
 }
-openers = set()
-logger = logging.getLogger('intake')
+from_yaml_file = entry.Catalog.from_yaml_file
 
 
 def __getattr__(attr):
@@ -44,55 +65,45 @@ def __getattr__(attr):
     must start with "open_", else they will be ignored.
     """
     gl = globals()
-    if attr in openers and attr[:5] == "open_":
-        driver = registry[attr[5:]]  # "open_..."
-        gl[attr] = driver
-    else:
-        if attr in gl:
-            return gl[attr]
-        elif attr in imports:
-            dest = imports[attr]
-            modname = dest.split(":", 1)[0]
-            logger.debug("Importing: %s" % modname)
-            mod = importlib.import_module(modname)
-            if ":" in dest:
-                gl[attr] = getattr(mod, dest.split(":")[1])
-            else:
-                gl[attr] = mod
+
     if attr == "__all__":
         return __dir__()
-    try:
+
+    if attr in gl:
         return gl[attr]
-    except KeyError:
-        raise AttributeError(attr)
+
+    if attr in imports:
+        dest = imports[attr]
+        gl[attr] = import_name(dest)
+        return gl[attr]
+
+    if attr[:5] == "open_":
+        if attr[5:] in registry.drivers.enabled_plugins():
+            driver = registry[attr[5:]]  # "open_..."
+            return driver
+        else:
+            registered_methods = [f"open_{driver}" for driver in registry.drivers.enabled_plugins()]
+            raise AttributeError(
+                f"Unknown open method '{attr}'. "
+                "Do you need to install a new driver from the plugin directory? "
+                "https://intake.readthedocs.io/en/latest/plugin-directory.html\n"
+                f"Registered opener methods: {registered_methods}"
+            )
+
+    raise AttributeError(attr)
 
 
 def __dir__(*_, **__):
-    return sorted(list(globals()) + list(openers) + list(imports))
-
-
-def make_open_functions():
-    """From the current state of ``registry``, create open_* functions"""
-    from .source.discovery import drivers
-
-    for name in drivers.enabled_plugins():
-
-        func_name = 'open_' + name
-        if not func_name.isidentifier():
-            # primitive name normalization
-            func_name = re.sub('[-=~^&|@+]', '_', func_name)
-        if func_name.isidentifier():
-            # stash name for dir() and later fetch
-            openers.add(func_name)
-        else:
-            warnings.warn('Invalid Intake plugin name "%s" found.', name, stacklevel=2)
-
-
-make_open_functions()
+    openers = ["open_" + name for name in registry.drivers.enabled_plugins()]
+    return sorted(list(globals()) + list(imports) + openers)
 
 
 def open_catalog(uri=None, **kwargs):
     """Create a Catalog object
+
+    *New in V2*: if the URL is a single file, and loading it as a V1 catalog fails because of
+    the stated version, it will be opened again as a V2 catalog. This will mean reading
+    the file twice, so calling ``from_yaml_file`` directly ie better.
 
     Can load YAML catalog files, connect to an intake server, or create any
     arbitrary Catalog subclass instance. In the general case, the user should
@@ -104,16 +115,16 @@ def open_catalog(uri=None, **kwargs):
 
     - if ``uri`` is a single string ending in "yml" or "yaml", open it as a
       catalog file
-    - if ``uri`` is a list of strings, a string containing a glob character
-      ("*") or a string not ending in "y(a)ml", open as a set of catalog
-      files. In the latter case, assume it is a directory.
+    - if ``uri`` is a list of strings or paths, a string containing a glob
+      character ("*") or a string not ending in "y(a)ml", open as a set of
+      catalog files. In the latter case, assume it is a directory.
     - if ``uri`` begins with protocol ``"intake:"``, connect to a remote
       Intake server
     - if ``uri`` is ``None`` or missing, create a base Catalog object without entries.
 
     Parameters
     ----------
-    uri: str or pathlib.Path
+    uri: str, pathlib.Path, or list/tuple of str or pathlib.Path
         Designator for the location of the catalog.
     kwargs:
         passed to subclass instance, see documentation of the individual
@@ -128,42 +139,53 @@ def open_catalog(uri=None, **kwargs):
     intake.open_yaml_files_cat, intake.open_yaml_file_cat,
     intake.open_intake_remote
     """
-    driver = kwargs.pop('driver', None)
+    driver = kwargs.pop("driver", None)
     if isinstance(uri, os.PathLike):
         uri = os.fspath(uri)
+    elif isinstance(uri, (list, tuple)):
+        uri = type(uri)(os.fspath(u) if isinstance(u, os.PathLike) else u for u in uri)
     if driver is None:
         if uri:
-            if ((isinstance(uri, str) and "*" in uri)
-                    or ((isinstance(uri, (list, tuple))) and len(uri) > 1)):
+            if (isinstance(uri, str) and "*" in uri) or (
+                (isinstance(uri, (list, tuple))) and len(uri) > 1
+            ):
                 # glob string or list of files/globs
-                driver = 'yaml_files_cat'
+                driver = "yaml_files_cat"
             elif isinstance(uri, (list, tuple)) and len(uri) == 1:
                 uri = uri[0]
                 if "*" in uri[0]:
                     # single glob string in a list
-                    driver = 'yaml_files_cat'
+                    driver = "yaml_files_cat"
                 else:
                     # single filename in a list
-                    driver = 'yaml_file_cat'
+                    driver = "yaml_file_cat"
             elif isinstance(uri, str):
                 # single URL
-                if uri.startswith('intake:'):
+                if uri.startswith("intake:"):
                     # server
-                    driver = 'intake_remote'
+                    driver = "intake_remote"
                 else:
-                    if uri.endswith(('.yml', '.yaml')):
-                        driver = 'yaml_file_cat'
+                    if uri.endswith((".yml", ".yaml")):
+                        driver = "yaml_file_cat"
                     else:
-                        uri = uri.rstrip('/') + '/*.y*ml'
-                        driver = 'yaml_files_cat'
+                        uri = uri.rstrip("/") + "/*.y*ml"
+                        driver = "yaml_files_cat"
             else:
                 raise ValueError("URI not understood: %s" % uri)
         else:
             # empty cat
-            driver = 'catalog'
-    if '_file' not in driver:
-        kwargs.pop('fs', None)
+            driver = "catalog"
+    if "_file" not in driver:
+        kwargs.pop("fs", None)
     if driver not in registry:
-        raise ValueError('Unknown catalog driver (%s), supply one of: %s'
-                         % (driver, list(sorted(registry))))
-    return registry[driver](uri, **kwargs)
+        raise ValueError(
+            f"Unknown catalog driver '{driver}'. "
+            "Do you need to install a new driver from the plugin directory? "
+            "https://intake.readthedocs.io/en/latest/plugin-directory.html\n"
+            f"Current registry: {list(sorted(registry))}"
+        )
+    try:
+        return registry[driver](uri, **kwargs)
+    except VersionError:
+        # warn that we are switching to V2? The file will be read twice
+        return from_yaml_file(uri, **kwargs)

@@ -343,9 +343,9 @@ no entrypoints, it will issue a ``FutureWarning``.
 Python API to Driver Discovery
 ''''''''''''''''''''''''''''''
 
-.. autofunction:: intake.source.discovery.autodiscover
-.. autofunction:: intake.source.discovery.enable
-.. autofunction:: intake.source.discovery.disable
+.. autofunction:: intake.source.discovery.drivers.register_driver
+.. autofunction:: intake.source.discovery.drivers.enable
+.. autofunction:: intake.source.discovery.drivers.disable
 
 .. _remote_data:
 
@@ -446,3 +446,8 @@ This pattern looks more like::
 
 To toggle on and off this path as pattern behavior, the CSV and intake-xarray drivers
 uses the bool ``path_as_pattern`` keyword argument.
+
+.. raw:: html
+
+    <script data-goatcounter="https://intake.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
